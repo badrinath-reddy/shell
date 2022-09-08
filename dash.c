@@ -10,7 +10,8 @@ void free_paths(char **path, int path_size);
 char* fetch_command(char *line);
 
 
-int main() {
+int main(int argc, char *argv[]) {
+
     // Prompt variables
     char prompt[] = "dash>";
 
@@ -25,6 +26,16 @@ int main() {
     int path_size = 0;
     add_path(&paths, &path_size, "/bin");
 
+    FILE* file = stdin;
+
+    if(argc > 2) {
+        printf("Usage: ./dash [path_file]");
+    }
+    else if(argc == 2) {
+        is_batch = true;
+        file = fopen(argv[1], "r");
+    }
+
     // Main Loop
     while(1) {
         if(!is_batch) {
@@ -32,9 +43,11 @@ int main() {
         }
         char *line = NULL;
         size_t len = 0;
-        ssize_t read = getline(&line, &len, stdin);
+        ssize_t read = getline(&line, &len, file);
+
+        // check for EOF
         if (read == -1) {
-            write(STDERR_FILENO, error_message, strlen(error_message));
+            exit(0);
         }
 
         char *save_ptr = line;
@@ -46,7 +59,7 @@ int main() {
         }
 
         // Exit command
-        if(strcmp(command, "exit\n") == 0) {
+        if(strcmp(command, "exit\n") == 0 || strcmp(command, "exit\0") == 0) {
             exit(0);
         }
 
