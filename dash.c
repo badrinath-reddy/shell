@@ -12,6 +12,7 @@ void free_paths(char **path, int path_size);
 char *fetch_command(char *line);
 bool find_in_path(char **path, int path_size, char **command);
 void clean_line(char **line);
+FILE *get_file(char *file_name);
 
 int main(int argc, char *argv[])
 {
@@ -31,23 +32,23 @@ int main(int argc, char *argv[])
     add_path(&paths, &path_size, "/bin");
 
     // Default input source
-    FILE *file = stdin;
+    FILE *input_file = stdin;
 
     // Incorrect number of arguments error
     if (argc > 2)
     {
-        printf("Usage: ./dash [path_file]\n");
-        return EXIT_FAILURE;
+        write(STDERR_FILENO, error_message, strlen(error_message));
+        exit(1);
     }
     // Batch mode handling
     else if (argc == 2)
     {
         is_batch = true;
-        file = fopen(argv[1], "r");
-        if (file == NULL)
+        input_file = fopen(argv[1], "r");
+        if (input_file == NULL)
         {
-            printf("Error: File not found\n");
-            return EXIT_FAILURE;
+            write(STDERR_FILENO, error_message, strlen(error_message));
+            exit(1);
         }
     }
 
@@ -60,7 +61,7 @@ int main(int argc, char *argv[])
         }
         char *line = NULL;
         size_t len = 0;
-        ssize_t read = getline(&line, &len, file);
+        ssize_t read = getline(&line, &len, input_file);
 
         // check for EOF
         if (read == -1)
@@ -129,13 +130,43 @@ int main(int argc, char *argv[])
                     int i = 0;
                     args[i] = command;
                     i++;
+                    bool is_redirect = false;
+                    char *out_file_name = NULL;
                     while ((args[i] = strtok_r(save_ptr, " ", &save_ptr)))
                     {
+                        // Extra params after redirect
+                        if (is_redirect)
+                        {
+                            write(STDERR_FILENO, error_message, strlen(error_message));
+                            exit(1);
+                        }
+
+                        // Redirect
+                        if (strcmp(args[i], ">") == 0)
+                        {
+                            is_redirect = true;
+                            out_file_name = strtok_r(save_ptr, " ", &save_ptr);
+                            continue;
+                        }
+
                         i++;
+                    }
+
+                    if (is_redirect)
+                    {
+                        FILE *out_file = get_file(out_file_name);
+                        if (out_file == NULL)
+                        {
+                            write(STDERR_FILENO, error_message, strlen(error_message));
+                            exit(1);
+                        }
+                        dup2(fileno(out_file), STDOUT_FILENO);
+                        dup2(fileno(out_file), STDERR_FILENO);
                     }
                     args[i] = NULL;
                     execv(command, args);
                     write(STDERR_FILENO, error_message, strlen(error_message));
+                    exit(1);
                 }
                 else
                 {
@@ -217,4 +248,11 @@ bool find_in_path(char **path, int path_size, char **command)
         }
     }
     return false;
+}
+
+// get file from string if not found create it
+FILE *get_file(char *file_name)
+{
+    FILE *file = fopen(file_name, "w");
+    return file;
 }
