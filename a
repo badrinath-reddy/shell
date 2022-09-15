@@ -1,9 +1,0 @@
-total 176
--rw-r--r--  1 badri  staff      0 Sep 15 13:28 a
--rwxr-xr-x  1 badri  staff  33586 Sep 15 12:34 a.out
--rw-r--r--  1 badri  staff      0 Sep 15 13:18 b
--rw-r--r--  1 badri  staff     30 Sep 15 13:10 batch.txt
--rwxr-xr-x  1 badri  staff  34721 Sep 15 13:27 dash
--rw-r--r--  1 badri  staff   7738 Sep 15 13:27 dash.c
--rw-r--r--  1 badri  staff    426 Sep 15 12:34 test.c
-drwxr-xr-x  2 badri  staff     64 Sep 15 12:03 testcases
