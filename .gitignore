@@ -2,3 +2,4 @@ test.c
 a.out
 dash
 .vscode
+.DS_Store

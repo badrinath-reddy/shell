@@ -89,6 +89,45 @@ int main(int argc, char *argv[])
             exit(0);
         }
 
+        // CD command
+        if (strcmp(command, "cd") == 0 )
+        {
+            char *cdpath = NULL;
+            int countArgs = 0;
+            bool isArgsPresent = false;
+            char *destinationPath = NULL;
+            bool isError = false;
+            while((cdpath = strtok_r(save_ptr, " ", &save_ptr))) {
+                isArgsPresent = true;
+                if(cdpath != NULL){
+                  countArgs++;
+                }
+                if(countArgs > 1 || cdpath == NULL){
+                  write(STDERR_FILENO, error_message, strlen(error_message));
+                  isError = true;
+                  break;
+                }
+                destinationPath = cdpath;
+            } 
+
+            //check if any error occured
+            if(isError){
+              continue;
+            }
+
+            //check if no arguments are present
+            if(!isArgsPresent) {
+              write(STDERR_FILENO, error_message, strlen(error_message));
+              continue;
+            }
+
+            // no error found, verify if directory exists and change directory
+            if(chdir(destinationPath) == -1){
+              write(STDERR_FILENO, error_message, strlen(error_message));
+              continue;
+            }
+        }
+
         // Path command
         else if (strcmp(command, "path") == 0)
         {
