@@ -13,6 +13,7 @@ char *fetch_command(char *line);
 bool find_in_path(char **path, int path_size, char **command);
 void clean_line(char **line);
 FILE *get_file(char *file_name);
+void handle_error(char *error_message, bool is_batch);
 
 int main(int argc, char *argv[])
 {
@@ -105,7 +106,7 @@ int main(int argc, char *argv[])
             // no error found, verify if directory exists and change directory
             if (countArgs == 0 || countArgs > 1 || chdir(destinationPath) == -1)
             {
-                write(STDERR_FILENO, error_message, strlen(error_message));
+                handle_error(error_message, is_batch);
             }
         }
 
@@ -132,7 +133,7 @@ int main(int argc, char *argv[])
             // Command not found
             if (!found)
             {
-                write(STDERR_FILENO, error_message, strlen(error_message));
+                handle_error(error_message, is_batch);
             }
 
             // Command found
@@ -235,7 +236,7 @@ void clean_line(char **line)
     }
     *line = *line + i;
     i = strlen(*line) - 1;
-    while ((*line)[i] == ' ' || (*line)[i] == '\t' || (*line)[i] == '\n')
+    while ((*line)[i] == ' ' || (*line)[i] == '\t' || (*line)[i] == '\n' || (*line)[i] == EOF)
     {
         (*line)[i] = '\0';
         i--;
@@ -275,4 +276,13 @@ FILE *get_file(char *file_name)
 {
     FILE *file = fopen(file_name, "w");
     return file;
+}
+
+void handle_error(char *error_message, bool is_batch)
+{
+    write(STDERR_FILENO, error_message, strlen(error_message));
+    if (is_batch)
+    {
+        exit(1);
+    }
 }

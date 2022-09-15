@@ -1,2 +1,3 @@
 path /bin /bash
-exit
+ls
+exi
