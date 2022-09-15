@@ -60,9 +60,9 @@ int main(int argc, char *argv[])
         {
             printf("%s", prompt);
         }
-        char *line = NULL;
+        char *input = NULL;
         size_t len = 0;
-        ssize_t read = getline(&line, &len, input_file);
+        ssize_t read = getline(&input, &len, input_file);
 
         // check for EOF
         if (read == -1)
@@ -71,133 +71,163 @@ int main(int argc, char *argv[])
         }
 
         // clean line
-        clean_line(&line);
+        clean_line(&input);
 
-        // Simple enter
-        if (strcmp(line, "") == 0)
+        char *line = NULL;
+        char *save_ptr_input = input;
+
+        int num_commands = 0;
+        while ((line = strtok_r(input, "&", &save_ptr_input)))
         {
-            continue;
-        }
+            num_commands++;
 
-        // Fetch command from line
-        char *save_ptr = line;
-        char *command = strtok_r(save_ptr, " ", &save_ptr);
+            // clean line
+            clean_line(&line);
 
-        // Built-in commands
-        // Exit command
-        if (strcmp(command, "exit") == 0 || strcmp(command, "exit\0") == 0)
-        {
-            exit(0);
-        }
-
-        // CD command
-        else if (strcmp(command, "cd") == 0)
-        {
-            char *cdpath = NULL;
-            int countArgs = 0;
-            char *destinationPath = NULL;
-            while ((cdpath = strtok_r(save_ptr, " ", &save_ptr)))
+            // Simple enter
+            if (strcmp(line, "") == 0)
             {
-                countArgs++;
-                destinationPath = cdpath;
+                continue;
             }
 
-            // check if no arguments are present or more than one argument is present
-            // no error found, verify if directory exists and change directory
-            if (countArgs == 0 || countArgs > 1 || chdir(destinationPath) == -1)
-            {
-                handle_error(error_message, is_batch);
-            }
-        }
+            // Fetch command from line
+            char *save_ptr = line;
+            char *command = strtok_r(save_ptr, " ", &save_ptr);
 
-        // Path command
-        else if (strcmp(command, "path") == 0)
-        {
-            free_paths(paths, path_size);
-            paths = NULL;
-            path_size = 0;
-            char *path = NULL;
-            while ((path = strtok_r(save_ptr, " ", &save_ptr)))
+            // Built-in commands
+            // Exit command
+            if (strcmp(command, "exit") == 0 || strcmp(command, "exit\0") == 0)
             {
-                add_path(&paths, &path_size, path);
-            }
-        }
-
-        // Other commands
-        else
-        {
-            // Check if command is in path
-            bool found = false;
-            found = find_in_path(paths, path_size, &command);
-
-            // Command not found
-            if (!found)
-            {
-                handle_error(error_message, is_batch);
+                exit(0);
             }
 
-            // Command found
+            // CD command
+            else if (strcmp(command, "cd") == 0)
+            {
+                char *cdpath = NULL;
+                int countArgs = 0;
+                char *destinationPath = NULL;
+                while ((cdpath = strtok_r(save_ptr, " ", &save_ptr)))
+                {
+                    countArgs++;
+                    destinationPath = cdpath;
+                }
+
+                // check if no arguments are present or more than one argument is present
+                // no error found, verify if directory exists and change directory
+                if (countArgs == 0 || countArgs > 1 || chdir(destinationPath) == -1)
+                {
+                    handle_error(error_message, is_batch);
+                }
+            }
+
+            // Path command
+            else if (strcmp(command, "path") == 0)
+            {
+                free_paths(paths, path_size);
+                paths = NULL;
+                path_size = 0;
+                char *path = NULL;
+                while ((path = strtok_r(save_ptr, " ", &save_ptr)))
+                {
+                    add_path(&paths, &path_size, path);
+                }
+            }
+
+            // Other commands
             else
             {
-                // Fork and execute command
-                int rc = fork();
-                if (rc < 0)
+                int c_pid = fork();
+                if (c_pid < 1)
                 {
-                    write(STDERR_FILENO, error_message, strlen(error_message));
+                    handle_error(error_message, is_batch);
                 }
-                else if (rc == 0)
+                else if (c_pid == 0)
                 {
-                    char *args[MAX_ARGS];
-                    int i = 0;
-                    args[i] = command;
-                    i++;
-                    bool is_redirect = false;
-                    char *out_file_name = NULL;
-                    while ((args[i] = strtok_r(save_ptr, " ", &save_ptr)))
+                    // Check if command is in path
+                    bool found = false;
+                    found = find_in_path(paths, path_size, &command);
+
+                    // Command not found
+                    if (!found)
                     {
-                        // Extra params after redirect
-                        if (is_redirect)
-                        {
-                            handle_error(error_message, true);
-                        }
-
-                        // Redirect
-                        if (strcmp(args[i], ">") == 0)
-                        {
-                            is_redirect = true;
-                            out_file_name = strtok_r(save_ptr, " ", &save_ptr);
-                            continue;
-                        }
-
-                        i++;
+                        handle_error(error_message, is_batch);
                     }
 
-                    if (is_redirect)
+                    // Command found
+                    else
                     {
-                        FILE *out_file = get_file(out_file_name);
-                        if (out_file == NULL)
+                        // Fork and execute command
+                        int rc = fork();
+                        if (rc < 0)
                         {
-                            handle_error(error_message, true);
+                            write(STDERR_FILENO, error_message, strlen(error_message));
                         }
-                        dup2(fileno(out_file), STDOUT_FILENO);
-                        dup2(fileno(out_file), STDERR_FILENO);
-                    }
-                    args[i] = NULL;
-                    execv(command, args);
-                    write(STDERR_FILENO, error_message, strlen(error_message));
-                    exit(1);
-                }
-                else
-                {
-                    int status;
-                    wait(&status);
+                        else if (rc == 0)
+                        {
+                            char *args[MAX_ARGS];
+                            int i = 0;
+                            args[i] = command;
+                            i++;
+                            bool is_redirect = false;
+                            char *out_file_name = NULL;
+                            while ((args[i] = strtok_r(save_ptr, " ", &save_ptr)))
+                            {
+                                // Extra params after redirect
+                                if (is_redirect)
+                                {
+                                    handle_error(error_message, true);
+                                }
 
-                    // Check if command failed
-                    if (status != 0 && is_batch)
-                    {
-                        exit(1);
+                                // Redirect
+                                if (strcmp(args[i], ">") == 0)
+                                {
+                                    is_redirect = true;
+                                    out_file_name = strtok_r(save_ptr, " ", &save_ptr);
+                                    continue;
+                                }
+
+                                i++;
+                            }
+
+                            if (is_redirect)
+                            {
+                                FILE *out_file = get_file(out_file_name);
+                                if (out_file == NULL)
+                                {
+                                    handle_error(error_message, true);
+                                }
+                                dup2(fileno(out_file), STDOUT_FILENO);
+                                dup2(fileno(out_file), STDERR_FILENO);
+                            }
+                            args[i] = NULL;
+                            execv(command, args);
+                            write(STDERR_FILENO, error_message, strlen(error_message));
+                            exit(1);
+                        }
+                        else
+                        {
+                            int status;
+                            wait(&status);
+
+                            // Check if command failed
+                            if (status != 0 && is_batch)
+                            {
+                                exit(1);
+                            }
+                        }
                     }
                 }
+            }
+        }
+        
+        for(int i = 0; i < num_commands; i++)
+        {
+            int status;
+            int k = wait(&status);
+            if(k != -1 && status != 0 && is_batch)
+            {
+                exit(1);
             }
         }
     }
