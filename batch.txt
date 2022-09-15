@@ -1,3 +1,4 @@
 path /bin /bash
-ls
-exi
+ls ll
+pwd
+exit
