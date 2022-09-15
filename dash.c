@@ -139,43 +139,6 @@ int main(int argc, char *argv[])
             // Command found
             else
             {
-                char *args[MAX_ARGS];
-                int i = 0;
-                args[i] = command;
-                i++;
-                bool is_redirect = false;
-                char *out_file_name = NULL;
-                while ((args[i] = strtok_r(save_ptr, " ", &save_ptr)))
-                {
-                    // Extra params after redirect
-                    if (is_redirect)
-                    {
-                        handle_error(error_message, is_batch);
-                    }
-
-                    // Redirect
-                    if (strcmp(args[i], ">") == 0)
-                    {
-                        is_redirect = true;
-                        out_file_name = strtok_r(save_ptr, " ", &save_ptr);
-                        continue;
-                    }
-
-                    i++;
-                }
-
-                if (is_redirect)
-                {
-                    FILE *out_file = get_file(out_file_name);
-                    if (out_file == NULL)
-                    {
-                        handle_error(error_message, is_batch);
-                    }
-                    dup2(fileno(out_file), STDOUT_FILENO);
-                    dup2(fileno(out_file), STDERR_FILENO);
-                }
-                args[i] = NULL;
-
                 // Fork and execute command
                 int rc = fork();
                 if (rc < 0)
@@ -184,6 +147,42 @@ int main(int argc, char *argv[])
                 }
                 else if (rc == 0)
                 {
+                    char *args[MAX_ARGS];
+                    int i = 0;
+                    args[i] = command;
+                    i++;
+                    bool is_redirect = false;
+                    char *out_file_name = NULL;
+                    while ((args[i] = strtok_r(save_ptr, " ", &save_ptr)))
+                    {
+                        // Extra params after redirect
+                        if (is_redirect)
+                        {
+                            handle_error(error_message, true);
+                        }
+
+                        // Redirect
+                        if (strcmp(args[i], ">") == 0)
+                        {
+                            is_redirect = true;
+                            out_file_name = strtok_r(save_ptr, " ", &save_ptr);
+                            continue;
+                        }
+
+                        i++;
+                    }
+
+                    if (is_redirect)
+                    {
+                        FILE *out_file = get_file(out_file_name);
+                        if (out_file == NULL)
+                        {
+                            handle_error(error_message, true);
+                        }
+                        dup2(fileno(out_file), STDOUT_FILENO);
+                        dup2(fileno(out_file), STDERR_FILENO);
+                    }
+                    args[i] = NULL;
                     execv(command, args);
                     write(STDERR_FILENO, error_message, strlen(error_message));
                     exit(1);
