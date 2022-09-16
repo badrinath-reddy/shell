@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
         char *save_ptr_input = input;
 
         int num_commands = 0;
-        while ((line = strtok_r(input, "&", &save_ptr_input)))
+        while ((line = strtok_r(save_ptr_input, "&", &save_ptr_input)))
         {
             num_commands++;
 
@@ -137,12 +137,12 @@ int main(int argc, char *argv[])
             // Other commands
             else
             {
-                int c_pid = fork();
-                if (c_pid < 1)
+                int x = fork();
+                if (x < 0)
                 {
                     handle_error(error_message, is_batch);
                 }
-                else if (c_pid == 0)
+                else if (x == 0)
                 {
                     // Check if command is in path
                     bool found = false;
@@ -217,15 +217,16 @@ int main(int argc, char *argv[])
                             }
                         }
                     }
+                    exit(0);
                 }
             }
         }
-        
-        for(int i = 0; i < num_commands; i++)
+
+        for (int i = 0; i < num_commands; i++)
         {
             int status;
             int k = wait(&status);
-            if(k != -1 && status != 0 && is_batch)
+            if (k != -1 && status != 0 && is_batch)
             {
                 exit(1);
             }

@@ -1,4 +1,4 @@
 path /bin /bash
-ls ll
+ls
 pwd
 exit
