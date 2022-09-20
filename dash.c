@@ -79,6 +79,11 @@ int main(int argc, char *argv[])
         char *line = NULL;
         char *save_ptr_input = input;
 
+        if(strcmp(input, "&") == 0) {
+            handle_error(error_message, is_batch);
+            continue;
+        }
+
         int num_commands = 0;
         while ((line = strtok_r(save_ptr_input, "&", &save_ptr_input)))
         {
@@ -235,10 +240,6 @@ int main(int argc, char *argv[])
             }
         }
 
-        if(num_commands == 0) {
-            handle_error(error_message, is_batch);
-            continue;
-        }
         int i;
         for (i = 0; i < num_commands; i++)
         {
