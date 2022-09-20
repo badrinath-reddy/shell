@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 
 #define MAX_ARGS 1000 // max number of arguments to a command
 
@@ -236,7 +239,8 @@ int main(int argc, char *argv[])
             handle_error(error_message, is_batch);
             continue;
         }
-        for (int i = 0; i < num_commands; i++)
+        int i;
+        for (i = 0; i < num_commands; i++)
         {
             int status;
             int k = wait(&status);
@@ -260,7 +264,8 @@ void add_path(char ***paths, int *path_size, char *new_path)
 // Print paths for debugging
 void print_paths(char **path, int path_size)
 {
-    for (int i = 0; i < path_size; i++)
+    int i;
+    for (i = 0; i < path_size; i++)
     {
         printf("\n%s", path[i]);
     }
@@ -269,7 +274,8 @@ void print_paths(char **path, int path_size)
 // Free paths array
 void free_paths(char **path, int path_size)
 {
-    for (int i = 0; i < path_size; i++)
+    int i;
+    for (i = 0; i < path_size; i++)
     {
         free(path[i]);
     }
@@ -306,7 +312,8 @@ char *fetch_command(char *line)
 bool find_in_path(char **path, int path_size, char **command)
 {
     char *full_path = NULL;
-    for (int i = 0; i < path_size; i++)
+    int i;
+    for (i = 0; i < path_size; i++)
     {
         full_path = (char *)malloc(strlen(path[i]) + strlen(*command) + 1);
         strcpy(full_path, path[i]);
