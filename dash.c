@@ -98,6 +98,16 @@ int main(int argc, char *argv[])
             // Exit command
             if (strcmp(command, "exit") == 0 || strcmp(command, "exit\0") == 0)
             {
+                int countArgs = 0;
+                while (strtok_r(save_ptr, " ", &save_ptr) != NULL)
+                {
+                    countArgs++;
+                }
+                if (countArgs > 0)
+                {
+                    handle_error(error_message, is_batch);
+                    continue;
+                }
                 exit(0);
             }
 
@@ -222,6 +232,10 @@ int main(int argc, char *argv[])
             }
         }
 
+        if(num_commands == 0) {
+            handle_error(error_message, is_batch);
+            continue;
+        }
         for (int i = 0; i < num_commands; i++)
         {
             int status;
