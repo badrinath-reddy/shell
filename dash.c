@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
         ssize_t read = getline(&input, &len, input_file);
 
         // check for EOF
-        if (read == -1)
+        if (read == -1 && is_batch)
         {
             exit(0);
         }
