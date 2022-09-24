@@ -175,71 +175,53 @@ int main(int argc, char *argv[])
                     // Command found
                     else
                     {
-                        // Fork and execute command
-                        int rc = fork();
-                        if (rc < 0)
+                        // execute command
+                        char *args[MAX_ARGS];
+                        int i = 0;
+                        args[i] = command;
+                        i++;
+                        bool is_redirect = false;
+                        char *out_file_name = NULL;
+                        while ((args[i] = strtok_r(save_ptr, " ", &save_ptr)))
                         {
-                            write(STDERR_FILENO, error_message, strlen(error_message));
-                        }
-                        else if (rc == 0)
-                        {
-                            char *args[MAX_ARGS];
-                            int i = 0;
-                            args[i] = command;
-                            i++;
-                            bool is_redirect = false;
-                            char *out_file_name = NULL;
-                            while ((args[i] = strtok_r(save_ptr, " ", &save_ptr)))
-                            {
-                                // Extra params after redirect
-                                if (is_redirect)
-                                {
-                                    handle_error(error_message, true);
-                                }
-
-                                // Redirect
-                                if (strcmp(args[i], ">") == 0)
-                                {
-                                    is_redirect = true;
-                                    out_file_name = strtok_r(save_ptr, " ", &save_ptr);
-                                    continue;
-                                }
-
-                                i++;
-                            }
-
+                            // Extra params after redirect
                             if (is_redirect)
                             {
-                                FILE *out_file = get_file(out_file_name);
-                                if (out_file == NULL)
-                                {
-                                    handle_error(error_message, true);
-                                }
-                                dup2(fileno(out_file), STDOUT_FILENO);
-                                dup2(fileno(out_file), STDERR_FILENO);
+                                handle_error(error_message, true);
                             }
-                            args[i] = NULL;
-                            execv(command, args);
-                            write(STDERR_FILENO, error_message, strlen(error_message));
-                            exit(1);
-                        }
-                        else
-                        {
-                            int status;
-                            wait(&status);
 
-                            // Check if command failed
-                            if (status != 0 && is_batch)
+                            // Redirect
+                            if (strcmp(args[i], ">") == 0)
                             {
-                                exit(1);
+                                is_redirect = true;
+                                out_file_name = strtok_r(save_ptr, " ", &save_ptr);
+                                continue;
                             }
+
+                            i++;
                         }
+
+                        if (is_redirect)
+                        {
+                            FILE *out_file = get_file(out_file_name);
+                            if (out_file == NULL)
+                            {
+                                handle_error(error_message, true);
+                            }
+                            dup2(fileno(out_file), STDOUT_FILENO);
+                            dup2(fileno(out_file), STDERR_FILENO);
+                        }
+                        args[i] = NULL;
+                        execv(command, args);
+                        write(STDERR_FILENO, error_message, strlen(error_message));
+                        exit(1);
                     }
                     exit(0);
                 }
             }
         }
 
+        // Wait for all commands to finish
         int i;
         for (i = 0; i < num_commands; i++)
         {
