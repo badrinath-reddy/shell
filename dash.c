@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-
 #define MAX_ARGS 1000 // max number of arguments to a command
 
 void add_path(char ***path, int *path_size, char *new_path);
@@ -79,7 +78,8 @@ int main(int argc, char *argv[])
         char *line = NULL;
         char *save_ptr_input = input;
 
-        if(strcmp(input, "&") == 0) {
+        if (strcmp(input, "&") == 0)
+        {
             handle_error(error_message, is_batch);
             continue;
         }
