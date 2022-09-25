@@ -98,6 +98,10 @@ int main(int argc, char *argv[])
                 continue;
             }
 
+            char *un_modified_command = NULL;
+
+            un_modified_command = strdup(line);
+
             // Fetch command from line
             char *save_ptr = line;
             char *command = strtok_r(save_ptr, " ", &save_ptr);
@@ -110,6 +114,7 @@ int main(int argc, char *argv[])
                 while (strtok_r(save_ptr, " ", &save_ptr) != NULL)
                 {
                     countArgs++;
+                    break;
                 }
                 if (countArgs > 0)
                 {
@@ -162,46 +167,70 @@ int main(int argc, char *argv[])
                 }
                 else if (x == 0)
                 {
+                    // process command
+                    int i = 0;
+                    save_ptr = un_modified_command;
+                    char *out_file_name = NULL;
+                    char *part = NULL;
+                    while ((part = strtok_r(save_ptr, ">", &save_ptr)))
+                    {
+                        // Extra params after redirect
+                        if (i > 1)
+                        {
+                            handle_error(error_message, is_batch);
+                            exit(0);
+                        }
+
+                        if (i == 0)
+                        {
+                            command = part;
+                        }
+
+                        // Redirect
+                        else if (i == 1)
+                        {
+                            out_file_name = part;
+                        }
+
+                        i++;
+                    }
+
+                    // clean line
+                    if(command != NULL){
+                        clean_line(&command);
+                    }
+                    if(out_file_name != NULL){
+                        clean_line(&out_file_name);
+                    }
+
+                    save_ptr = command;
+                    char *args[MAX_ARGS];
+                    int j = 0;
+
+                    while ((part = strtok_r(save_ptr, " ", &save_ptr)))
+                    {
+                        args[j] = part;
+                        j++;
+                    }
+
+                    args[j] = NULL;
+
                     // Check if command is in path
                     bool found = false;
-                    found = find_in_path(paths, path_size, &command);
+                    found = find_in_path(paths, path_size, &args[0]);
 
                     // Command not found
                     if (!found)
                     {
                         handle_error(error_message, is_batch);
+                        exit(0);
                     }
 
                     // Command found
                     else
                     {
-                        // execute command
-                        char *args[MAX_ARGS];
-                        int i = 0;
-                        args[i] = command;
-                        i++;
-                        bool is_redirect = false;
-                        char *out_file_name = NULL;
-                        while ((args[i] = strtok_r(save_ptr, " ", &save_ptr)))
-                        {
-                            // Extra params after redirect
-                            if (is_redirect)
-                            {
-                                handle_error(error_message, true);
-                            }
-
-                            // Redirect
-                            if (strcmp(args[i], ">") == 0)
-                            {
-                                is_redirect = true;
-                                out_file_name = strtok_r(save_ptr, " ", &save_ptr);
-                                continue;
-                            }
-
-                            i++;
-                        }
-
-                        if (is_redirect)
+                        // Redirect
+                        if (i > 1)
                         {
                             FILE *out_file = get_file(out_file_name);
                             if (out_file == NULL)
@@ -211,12 +240,10 @@ int main(int argc, char *argv[])
                             dup2(fileno(out_file), STDOUT_FILENO);
                             dup2(fileno(out_file), STDERR_FILENO);
                         }
-                        args[i] = NULL;
-                        execv(command, args);
+                        execv(args[0], args);
                         write(STDERR_FILENO, error_message, strlen(error_message));
                         exit(1);
                     }
-                    exit(0);
                 }
             }
         }
@@ -268,7 +295,13 @@ void free_paths(char **path, int path_size)
 // Clean line by removing spaces and newlines from the end and beginning
 void clean_line(char **line)
 {
-    int i = 0;
+    int i = strlen(*line);
+    if (i == 0)
+    {
+        return;
+    }
+
+    i = 0;
     while ((*line)[i] == ' ' || (*line)[i] == '\t')
     {
         i++;

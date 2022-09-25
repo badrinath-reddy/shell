@@ -1,4 +1,2 @@
-ls
-pwd
-ls
-pwd
+path /Users/badri/Desktop/os-p1 /bin
+cd test & a.out
