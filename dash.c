@@ -172,6 +172,13 @@ int main(int argc, char *argv[])
                     save_ptr = un_modified_command;
                     char *out_file_name = NULL;
                     char *part = NULL;
+                    bool is_redirect = false;
+
+                    if (strstr(save_ptr, ">"))
+                    {
+                        is_redirect = true;
+                    }
+
                     while ((part = strtok_r(save_ptr, ">", &save_ptr)))
                     {
                         // Extra params after redirect
@@ -189,17 +196,44 @@ int main(int argc, char *argv[])
                         // Redirect
                         else if (i == 1)
                         {
-                            out_file_name = part;
+                            // verify if multiple files are passed with space in the
+                            // redirection output and throw error
+
+                            int count_files = 0;
+                            char *mini_part = NULL;
+                            while ((mini_part = strtok_r(part, " ", &part)))
+                            {
+                                if (count_files > 0 && (mini_part != NULL))
+                                {
+                                    handle_error(error_message, is_batch);
+                                    exit(0);
+                                }
+
+                                if (count_files == 0)
+                                {
+                                    out_file_name = mini_part;
+                                }
+                                count_files++;
+                            }
                         }
 
                         i++;
                     }
 
+                    // redirect with no output file
+                    if (is_redirect && out_file_name == NULL)
+                    {
+                        handle_error(error_message, is_batch);
+                        exit(0);
+                    }
+
                     // clean line
-                    if(command != NULL){
+                    if (command != NULL)
+                    {
                         clean_line(&command);
                     }
-                    if(out_file_name != NULL){
+                    if (out_file_name != NULL)
+                    {
                         clean_line(&out_file_name);
                     }
 
