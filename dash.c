@@ -161,6 +161,7 @@ int main(int argc, char *argv[])
                 if (x < 0)
                 {
                     print_error();
+                    exit(1);
                 }
                 else if (x == 0)
                 {
@@ -284,12 +285,7 @@ int main(int argc, char *argv[])
         int i;
         for (i = 0; i < num_commands; i++)
         {
-            int status;
-            int k = wait(&status);
-            if (k != -1 && status != 0 && is_batch)
-            {
-                exit(1);
-            }
+            wait(NULL);
         }
     }
 }
