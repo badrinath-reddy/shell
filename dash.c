@@ -202,8 +202,8 @@ int main(int argc, char *argv[])
                             {
                                 if (count_files > 0 && (mini_part != NULL))
                                 {
-                                    handle_error(error_message, is_batch);
-                                    exit(0);
+                                    print_error();
+                                    exit(1);
                                 }
 
                                 if (count_files == 0)
@@ -220,8 +220,8 @@ int main(int argc, char *argv[])
                     // redirect with no output file
                     if (is_redirect && out_file_name == NULL)
                     {
-                        handle_error(error_message, is_batch);
-                        exit(0);
+                        print_error();
+                        exit(1);
                     }
 
                     // clean line
