@@ -15,16 +15,13 @@ char *fetch_command(char *line);
 bool find_in_path(char **path, int path_size, char **command);
 void clean_line(char **line);
 FILE *get_file(char *file_name);
-void handle_error(char *error_message, bool is_batch);
+void print_error(void);
 
 int main(int argc, char *argv[])
 {
 
     // Prompt variables
     char prompt[] = "dash>";
-
-    // Error message
-    char error_message[30] = "An error has occurred\n";
 
     // Batch mode variables
     bool is_batch = false;
@@ -40,7 +37,7 @@ int main(int argc, char *argv[])
     // Incorrect number of arguments error
     if (argc > 2)
     {
-        write(STDERR_FILENO, error_message, strlen(error_message));
+        print_error();
         exit(1);
     }
     // Batch mode handling
@@ -50,7 +47,7 @@ int main(int argc, char *argv[])
         input_file = fopen(argv[1], "r");
         if (input_file == NULL)
         {
-            write(STDERR_FILENO, error_message, strlen(error_message));
+            print_error();
             exit(1);
         }
     }
@@ -80,7 +77,7 @@ int main(int argc, char *argv[])
 
         if (strcmp(input, "&") == 0)
         {
-            handle_error(error_message, is_batch);
+            print_error();
             continue;
         }
 
@@ -110,15 +107,15 @@ int main(int argc, char *argv[])
             // Exit command
             if (strcmp(command, "exit") == 0 || strcmp(command, "exit\0") == 0)
             {
-                int countArgs = 0;
+                bool has_args = false;
                 while (strtok_r(save_ptr, " ", &save_ptr) != NULL)
                 {
-                    countArgs++;
+                    has_args = true;
                     break;
                 }
-                if (countArgs > 0)
+                if (has_args)
                 {
-                    handle_error(error_message, is_batch);
+                    print_error();
                     continue;
                 }
                 exit(0);
@@ -140,7 +137,7 @@ int main(int argc, char *argv[])
                 // no error found, verify if directory exists and change directory
                 if (countArgs == 0 || countArgs > 1 || chdir(destinationPath) == -1)
                 {
-                    handle_error(error_message, is_batch);
+                    print_error();
                 }
             }
 
@@ -163,7 +160,7 @@ int main(int argc, char *argv[])
                 int x = fork();
                 if (x < 0)
                 {
-                    handle_error(error_message, is_batch);
+                    print_error();
                 }
                 else if (x == 0)
                 {
@@ -177,8 +174,8 @@ int main(int argc, char *argv[])
                         // Extra params after redirect
                         if (i > 1)
                         {
-                            handle_error(error_message, is_batch);
-                            exit(0);
+                            print_error();
+                            exit(1);
                         }
 
                         if (i == 0)
@@ -196,10 +193,12 @@ int main(int argc, char *argv[])
                     }
 
                     // clean line
-                    if(command != NULL){
+                    if (command != NULL)
+                    {
                         clean_line(&command);
                     }
-                    if(out_file_name != NULL){
+                    if (out_file_name != NULL)
+                    {
                         clean_line(&out_file_name);
                     }
 
@@ -222,8 +221,8 @@ int main(int argc, char *argv[])
                     // Command not found
                     if (!found)
                     {
-                        handle_error(error_message, is_batch);
-                        exit(0);
+                        print_error();
+                        exit(1);
                     }
 
                     // Command found
@@ -235,13 +234,14 @@ int main(int argc, char *argv[])
                             FILE *out_file = get_file(out_file_name);
                             if (out_file == NULL)
                             {
-                                handle_error(error_message, true);
+                                print_error();
+                                exit(1);
                             }
                             dup2(fileno(out_file), STDOUT_FILENO);
                             dup2(fileno(out_file), STDERR_FILENO);
                         }
                         execv(args[0], args);
-                        write(STDERR_FILENO, error_message, strlen(error_message));
+                        print_error();
                         exit(1);
                     }
                 }
@@ -351,11 +351,10 @@ FILE *get_file(char *file_name)
     return file;
 }
 
-void handle_error(char *error_message, bool is_batch)
+void print_error()
 {
+    // Error message
+    char error_message[30] = "An error has occurred\n";
     write(STDERR_FILENO, error_message, strlen(error_message));
-    if (is_batch)
-    {
-        exit(1);
-    }
+    return;
 }
